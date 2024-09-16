@@ -1,8 +1,5 @@
-import exress from "express";
+import express from "express";
 import { connectDb } from "./utils/features.js";
-import userRoutes from "./routes/user.routes.js";
-import chatRoutes from "./routes/chat.routes.js";
-import adminRoutes from "./routes/admin.routes.js";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import { errorMiddleware } from "./middlewares/error.js";
@@ -12,17 +9,6 @@ import { createServer } from "http";
 import { v4 as uuid } from "uuid";
 import cors from "cors";
 import { v2 as cloudinary } from "cloudinary";
-import { getSockets } from "./lib/helper.js";
-import { Message } from "./models/message.js";
-import { corsOption } from "./constant/config.js";
-import { socketAuthenticator } from "./middlewares/auth.js";
-
-import {
-  createGroupsChats,
-  createMessageInChat,
-  createSingleChats,
-  createUser,
-} from "./seeders/user.js";
 import {
   CHAT_JOINED,
   CHAT_LEFT,
@@ -33,15 +19,27 @@ import {
   STOP_TYPING,
 } from "./constant/event.js";
 
+import { getSockets } from "./lib/helper.js";
+import { Message } from "./models/message.js";
+import { corsOption } from "./constant/config.js";
+import { socketAuthenticator } from "./middlewares/auth.js";
+
+import userRoutes from "./routes/user.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
+
 dotenv.config({
   path: "./.env",
 });
 const uri = process.env.MONGO_URI;
 const port = process.env.PORT || 3000;
+const envMode = process.env.NODE_ENV.trim() || "PRODUCTION";
 export const adminSecretKey = process.env.ADMIN_SECRET_KEY || "admin-Taabish";
 const socketUserIds = new Map();
 const onlineUsers = new Set();
+
 connectDb(uri);
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -51,17 +49,17 @@ cloudinary.config({
 // createGroupsChats(20);
 // createSingleChats(10)
 // createMessageInChat("66dae93e94d812af1c9689f3",10)
-const app = exress();
+
+const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: corsOption,
 });
 
 app.set("io", io);
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(cookieParser());
-app.use(cors(corsOption));
+app.use("*", cors(corsOption));
 
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/chat", chatRoutes);
@@ -127,13 +125,13 @@ io.on("connection", (socket) => {
     socket.to(membersSockets).emit(STOP_TYPING, { chatId });
   });
 
-  socket.on(CHAT_JOINED, ({userId, members}) => {
+  socket.on(CHAT_JOINED, ({ userId, members }) => {
     console.log("chat joined", userId);
     onlineUsers.add(userId?.toString());
     const membersSockets = getSockets(members);
     io.to(membersSockets).emit(ONLINE_USERS, Array.from(onlineUsers));
   });
-  socket.on(CHAT_LEFT, ({userId, members}) => {
+  socket.on(CHAT_LEFT, ({ userId, members }) => {
     console.log("chat left", userId);
     onlineUsers.delete(userId?.toString());
     const membersSockets = getSockets(members);
@@ -150,9 +148,7 @@ io.on("connection", (socket) => {
 
 app.use(errorMiddleware);
 server.listen(port, () => {
-  console.log(
-    `server is running on port ${port} in ${process.env.NODE_ENV} Mode`
-  );
+  console.log(`server is running on port ${port} in ${envMode} Mode`);
 });
 
-export { socketUserIds };
+export { socketUserIds, envMode };

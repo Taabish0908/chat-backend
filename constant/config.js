@@ -5,7 +5,7 @@ const corsOption = {
     process.env.CLIENT_URL ||"https://chat-frontend-ten-murex.vercel.app",
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,
+  credentials:true,
 };
 
 export { corsOption };
