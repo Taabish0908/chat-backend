@@ -1,4 +1,5 @@
 import express from "express";
+const app = express();
 import { connectDb } from "./utils/features.js";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
@@ -50,16 +51,17 @@ cloudinary.config({
 // createSingleChats(10)
 // createMessageInChat("66dae93e94d812af1c9689f3",10)
 
-const app = express();
+
+app.use(cors(corsOption));
 const server = createServer(app);
 const io = new Server(server, {
-  cors: corsOption,
+  cors:corsOption
 });
 
 app.set("io", io);
 app.use(express.json());
+
 app.use(cookieParser());
-app.use("*", cors(corsOption));
 
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/chat", chatRoutes);
